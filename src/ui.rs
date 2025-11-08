@@ -96,6 +96,7 @@ pub fn draw(frame: &mut Frame, state: &mut ListState) {
         .highlight_symbol("");
 
     frame.render_stateful_widget(list, size, state);
+}
 // move selection to next message (each message uses 2 ListItems)
 pub fn select_next(state: &mut ListState, msg_count: usize) {
     if msg_count == 0 {

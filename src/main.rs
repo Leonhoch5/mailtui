@@ -1,6 +1,9 @@
+// module declarations
 mod ui;
+mod mail;
 mod app;
 
-fn main() -> Result<(), std::io::Error> {
-    app::run()
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    app::run()?;
+    Ok(())
 }
