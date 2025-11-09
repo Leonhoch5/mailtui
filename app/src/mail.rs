@@ -4,9 +4,8 @@ use oauth2::{
 };
 use open;
 
-/// sample stuff - build auth URL that points to a real server (no local server)
+
 pub fn oauth_login(client_id: &str, _client_secret: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    // real redirect (override with MAIL_OAUTH_REDIRECT env var)
     let redirect_str = std::env::var("MAIL_OAUTH_REDIRECT")
         .unwrap_or_else(|_| "https://mailtui.vercel.app/callback".to_string());
     let auth_url = AuthUrl::new("https://accounts.google.com/o/oauth2/v2/auth".to_string())?;
@@ -15,7 +14,7 @@ pub fn oauth_login(client_id: &str, _client_secret: &str) -> Result<String, Box<
 
     let client = oauth2::basic::BasicClient::new(
         ClientId::new(client_id.to_string()),
-        Some(ClientSecret::new("".to_string())), // server will use real secret
+        Some(ClientSecret::new("".to_string())), 
         auth_url,
         Some(token_url),
     )
