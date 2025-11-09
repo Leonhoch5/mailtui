@@ -1,2 +1,41 @@
-/target
-Cargo.lock
+app/target
+app/Cargo.lock
+
+mailtui-web/node_modules
+mailtui-web/.pnp
+mailtui-web/.pnp.*
+mailtui-web/.yarn/*
+!mailtui-web/.yarn/patches
+!mailtui-web/.yarn/plugins
+!mailtui-web/.yarn/releases
+!mailtui-web/.yarn/versions
+
+# testing
+mailtui-web/coverage
+
+# next.js
+mailtui-web/.next/
+mailtui-web/out/
+
+# production
+mailtui-web/build
+
+# misc
+mailtui-web/.DS_Store
+mailtui-web/*.pem
+
+# debug
+mailtui-web/npm-debug.log*
+mailtui-web/yarn-debug.log*
+mailtui-web/yarn-error.log*
+mailtui-web/.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+mailtui-web/.env*
+
+# vercel
+mailtui-web/.vercel
+
+# typescript
+mailtui-web/*.tsbuildinfo
+mailtui-web/next-env.d.ts
