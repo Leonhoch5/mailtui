@@ -3,19 +3,29 @@ use crossterm::{terminal::{enable_raw_mode, disable_raw_mode, EnterAlternateScre
 use ratatui::{backend::CrosstermBackend, Terminal};
 use ratatui::widgets::ListState;
 
-use crate::{ui, mail};
+use crate::{ui, login_ui};
 
 pub fn run() -> Result<(), io::Error> {
-    // try oauth on startup if env vars present
-    let client_id = std::env::var("MAIL_OAUTH_CLIENT_ID").ok();
-    let client_secret = std::env::var("MAIL_OAUTH_CLIENT_SECRET").ok();
-    if let (Some(id), Some(sec)) = (client_id, client_secret) {
-        match mail::oauth_login(&id, &sec) {
-            Ok(token) => println!("OAuth token obtained (length {}), continuing...", token.len()),
-            Err(e) => eprintln!("OAuth login failed: {}", e),
+    // ask user which provider to use via TUI and attempt login if requested
+    match login_ui::prompt_provider() {
+        Ok(login_ui::Provider::Google) => {
+            let client_id = std::env::var("MAIL_OAUTH_CLIENT_ID").ok();
+            let client_secret = std::env::var("MAIL_OAUTH_CLIENT_SECRET").ok();
+            if let (Some(id), Some(sec)) = (client_id, client_secret) {
+                match crate::mail_oauth::oauth_login(&id, &sec) {
+                    Ok(token) => println!("OAuth token obtained (length {}), continuing...", token.len()),
+                    Err(e) => eprintln!("OAuth login failed: {}", e),
+                }
+            } else {
+                println!("MAIL_OAUTH_CLIENT_ID/MAIL_OAUTH_CLIENT_SECRET not set; set them or choose Skip.");
+            }
         }
-    } else {
-        println!("MAIL_OAUTH_CLIENT_ID/MAIL_OAUTH_CLIENT_SECRET not set; skipping OAuth");
+        Ok(login_ui::Provider::Outlook) => {
+            println!("Outlook login is not implemented yet. Skipping.");
+        }
+        Ok(login_ui::Provider::Skip) | Err(_) => {
+            println!("Skipping login");
+        }
     }
 
     enable_raw_mode()?;

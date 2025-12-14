@@ -4,24 +4,50 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, ListState},
     style::{Style, Color, Modifier},
 };
+use once_cell::sync::Lazy;
+use std::sync::Mutex;
+use crate::gmail::SimpleMail;
 
-pub fn sample_messages() -> Vec<(&'static str, &'static str, bool, &'static str)> {
-    // sample stuff - change to real array later
+static MESSAGES: Lazy<Mutex<Vec<SimpleMail>>> = Lazy::new(|| Mutex::new(Vec::new()));
+
+fn sample_messages() -> Vec<(String, String, bool, String)> {
     vec![
-        ("Alice", "Meeting tomorrow", false, "09:12"),
-        ("Bob", "Rust project update", true, "13:45"),
-        ("Charlie", "Flight booking", false, "Yesterday"),
+        ("Alice".into(), "Meeting tomorrow".into(), false, "09:12".into()),
+        ("Bob".into(), "Rust project update".into(), true, "13:45".into()),
+        ("Charlie".into(), "Flight booking".into(), false, "Yesterday".into()),
     ]
 }
 
+pub fn set_messages(msgs: Vec<SimpleMail>) {
+    let mut guard = MESSAGES.lock().unwrap();
+    *guard = msgs;
+}
+
 pub fn message_count() -> usize {
-    sample_messages().len()
+    let guard = MESSAGES.lock().unwrap();
+    if guard.is_empty() {
+        sample_messages().len()
+    } else {
+        guard.len()
+    }
 }
 
 pub fn draw(frame: &mut Frame, state: &mut ListState) {
     let size = frame.size();
 
-    let raw = sample_messages();
+    // prefer real messages when available
+    let guard = MESSAGES.lock().unwrap();
+    let raw_msgs: Vec<(String, String, bool, String)> = if guard.is_empty() {
+        sample_messages()
+    } else {
+        guard.iter().map(|m| {
+            let from = m.from.clone().unwrap_or_else(|| "unknown".into());
+            let subject = m.subject.clone().unwrap_or_else(|| "(no subject)".into());
+            let read = false; // TODO: track read state
+            let date = m.date.clone().unwrap_or_else(|| "".into());
+            (from, subject, read, date)
+        }).collect()
+    };
 
     let preferred_bar_col: usize = 25;
     let term_width = size.width as usize;
@@ -43,7 +69,7 @@ pub fn draw(frame: &mut Frame, state: &mut ListState) {
 
     let mut items: Vec<ListItem> = Vec::new();
 
-    for (from, subject, read, sent) in &raw {
+    for (from, subject, read, sent) in &raw_msgs {
         let dot = if *read { "○" } else { "●" };
         let mut left = format!("{} From: {}", dot, from);
 
@@ -86,7 +112,7 @@ pub fn draw(frame: &mut Frame, state: &mut ListState) {
     }
 
     // selection: default to first
-    if state.selected().is_none() && !raw.is_empty() {
+    if state.selected().is_none() && !raw_msgs.is_empty() {
         state.select(Some(0));
     }
 
