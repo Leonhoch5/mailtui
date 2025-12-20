@@ -1,9 +1,15 @@
+pub mod login;
+pub mod single_mail;
+
 use crossterm::event::KeyCode;
 use ratatui::{
     Frame,
     widgets::{Block, Borders, List, ListItem, ListState},
     style::{Style, Color, Modifier},
 };
+use ratatui::widgets::Paragraph;
+use ratatui::layout::Alignment;
+use ratatui::widgets::Wrap;
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
 use crate::gmail::SimpleMail;
@@ -21,6 +27,30 @@ fn sample_messages() -> Vec<(String, String, bool, String)> {
 pub fn set_messages(msgs: Vec<SimpleMail>) {
     let mut guard = MESSAGES.lock().unwrap();
     *guard = msgs;
+}
+
+pub fn get_message(idx: usize) -> Option<SimpleMail> {
+    let guard = MESSAGES.lock().unwrap();
+    guard.get(idx).cloned()
+}
+
+pub fn render_message_fullscreen(frame: &mut Frame, m: &SimpleMail) {
+    let size = frame.size();
+    let subject = m.subject.clone().unwrap_or_else(|| "(no subject)".into());
+    let from = m.from.clone().unwrap_or_else(|| "unknown".into());
+    let date = m.date.clone().unwrap_or_else(|| "".into());
+    let snippet = m.snippet.clone().unwrap_or_else(|| "".into());
+
+    let title = format!("{} — {}", subject, from);
+    let header = Block::default().title(title).borders(Borders::ALL);
+    let body = format!("Date: {}\n\n{}", date, snippet);
+
+    let paragraph = Paragraph::new(body)
+        .block(header)
+        .wrap(Wrap { trim: true })
+        .alignment(Alignment::Left);
+
+    frame.render_widget(paragraph, size);
 }
 
 pub fn message_count() -> usize {

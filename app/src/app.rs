@@ -3,16 +3,16 @@ use crossterm::{terminal::{enable_raw_mode, disable_raw_mode, EnterAlternateScre
 use ratatui::{backend::CrosstermBackend, Terminal};
 use ratatui::widgets::ListState;
 
-use crate::{ui, login_ui};
+use crate::ui;
 
 pub fn run() -> Result<(), io::Error> {
     // ask user which provider to use via TUI and attempt login if requested
-    match login_ui::prompt_provider() {
-        Ok(login_ui::Provider::Google) => {
+    match crate::ui::login::prompt_provider() {
+        Ok(crate::ui::login::Provider::Google) => {
             let client_id = std::env::var("MAIL_OAUTH_CLIENT_ID").ok();
             let client_secret = std::env::var("MAIL_OAUTH_CLIENT_SECRET").ok();
             if let (Some(id), Some(sec)) = (client_id, client_secret) {
-                match crate::mail_oauth::oauth_login(&id, &sec) {
+                match crate::auth::oauth_wrapper::oauth_login(&id, &sec) {
                     Ok(token) => println!("OAuth token obtained (length {}), continuing...", token.len()),
                     Err(e) => eprintln!("OAuth login failed: {}", e),
                 }
@@ -20,10 +20,10 @@ pub fn run() -> Result<(), io::Error> {
                 println!("MAIL_OAUTH_CLIENT_ID/MAIL_OAUTH_CLIENT_SECRET not set; set them or choose Skip.");
             }
         }
-        Ok(login_ui::Provider::Outlook) => {
+        Ok(crate::ui::login::Provider::Outlook) => {
             println!("Outlook login is not implemented yet. Skipping.");
         }
-        Ok(login_ui::Provider::Skip) | Err(_) => {
+        Ok(crate::ui::login::Provider::Skip) | Err(_) => {
             println!("Skipping login");
         }
     }
@@ -45,7 +45,26 @@ pub fn run() -> Result<(), io::Error> {
                     break;
                 }
 
-                ui::handle_key(&mut list_state, key.code, ui::message_count());
+                match key.code {
+                    KeyCode::Enter => {
+                        let sel = list_state.selected().map(|i| i/2).unwrap_or(0);
+                        if let Some(mail) = ui::get_message(sel) {
+                            // fullscreen view loop
+                            loop {
+                                terminal.draw(|f| ui::render_message_fullscreen(f, &mail))?;
+                                if event::poll(std::time::Duration::from_millis(100))? {
+                                    if let Event::Key(k) = event::read()? {
+                                        match k.code {
+                                            KeyCode::Esc | KeyCode::Char('q') | KeyCode::Enter => break,
+                                            _ => {}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    other => ui::handle_key(&mut list_state, other, ui::message_count()),
+                }
             }
         }
     }

@@ -1,13 +1,13 @@
 mod ui;
-mod mail;
+mod auth;
+mod storage;
+mod fetch;
 mod token_store;
-mod mail_oauth;
-mod login_ui;
 mod gmail;
 mod app;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let _ = dotenv::dotenv();
+    let _ = dotenv::from_filename("app/.env").or_else(|_| dotenv::dotenv());
 
     app::run()?;
     Ok(())
