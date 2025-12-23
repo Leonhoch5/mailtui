@@ -1,4 +1,5 @@
 use std::error::Error;
+use base64::Engine;
 use reqwest::blocking::Client;
 use serde::Deserialize;
 
@@ -90,4 +91,27 @@ pub fn fetch_latest(access_token: &str, max_results: usize) -> Result<Vec<Simple
         }
     }
     Ok(out)
+}
+
+pub fn send_mail(access_token: &str, raw_rfc822: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let client = Client::new();
+    // Gmail API expects base64url (URL-safe, no padding)
+    let encoded = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(raw_rfc822.as_bytes());
+
+    let send_url = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send";
+    let body = serde_json::json!({ "raw": encoded });
+
+    let res = client
+        .post(send_url)
+        .bearer_auth(access_token)
+        .json(&body)
+        .send()?;
+
+    if !res.status().is_success() {
+        let status = res.status();
+        let b = res.text().unwrap_or_else(|_| "<failed to read body>".into());
+        return Err(format!("gmail send API error: {} - {}", status, b).into());
+    }
+
+    Ok(())
 }
